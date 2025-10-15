@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- Defines the user interface for the main map view of the application.
+The page's data context is set to MainViewModel to enable data binding. -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:MeTracker.Controls"
@@ -7,7 +9,9 @@
              x:Class="MeTracker.Views.MainView"
              Title="MainView">
 
-    <!-- The Grid and Button are removed, leaving only the CustomMap control. -->
+    <!-- Displays the custom map control that fills the entire page.
+    - The 'Points' property is data-bound to the ViewModel to display the heat map data.
+    - The 'x:Name' attribute allows the map to be accessed from the C# code-behind. -->
     <controls:CustomMap x:Name="Map" Points="{Binding Points}" />
 
 </ContentPage>

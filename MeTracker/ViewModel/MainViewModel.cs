@@ -1,32 +1,40 @@
-// Path: /ViewModels/MainViewModel.cs
-
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using MeTracker.Repositories;
-using MeTracker.Services;
 using System.Diagnostics;
+// Use an alias to avoid naming conflicts with other 'Location' types.
 using MauiLocation = Microsoft.Maui.Devices.Sensors.Location;
 
 namespace MeTracker.ViewModels;
 
+/// <summary>
+/// Manages the data and logic for the main view.
+/// Processes raw location data into a collection of points for heat map display.
+/// </summary>
 public partial class MainViewModel : ViewModel
 {
     private readonly ILocationRepository locationRepository;
 
+    /// <summary>
+    /// Gets or sets the collection of processed data points for the heat map.
+    /// This property is bindable and will notify the UI of any changes.
+    /// </summary>
     [ObservableProperty]
     private List<Models.Point> points = new List<Models.Point>();
 
-    // --- CHANGE #1: SIMPLIFIED CONSTRUCTOR ---
-    // The ILocationTrackingService is no longer needed here.
-    // The logic to start the service and load data is moved to the View's lifecycle.
+    /// <summary>
+    /// Initializes a new instance of the MainViewModel.
+    /// </summary>
+    /// <param name="locationRepository">The repository for accessing location data.</param>
     public MainViewModel(ILocationRepository locationRepository)
     {
         this.locationRepository = locationRepository;
     }
 
-    // --- CHANGE #2: METHOD MADE PUBLIC ---
-    // This is now public so the MainView's code-behind can call it
-    // when the page appears on screen.
+    /// <summary>
+    /// Loads raw location data from the repository, processes it by grouping nearby
+    /// coordinates into points, calculates a heat value for each point based on visit
+    /// frequency, and updates the public Points property to refresh the UI.
+    /// </summary>
     public async Task LoadDataAsync()
     {
         Debug.WriteLine("[MainViewModel] LoadDataAsync: Attempting to get all locations from repository.");
@@ -43,12 +51,12 @@ public partial class MainViewModel : ViewModel
 
         var pointList = new List<Models.Point>();
 
-        // Step 1: Group all locations into points
+        // Group all retrieved locations into points based on proximity (200m radius).
         foreach (var dbLocation in locations)
         {
-            var existingPoint = pointList.FirstOrDefault(p =>
+            var existingPoint = pointList.FirstOrDefault(p => p.Location != null &&
                 MauiLocation.CalculateDistance(
-                    p.Location.Latitude, p.Location.Longitude,
+                    p.Location.Latitude, p.Location.Longitude, 
                     dbLocation.Latitude, dbLocation.Longitude,
                     DistanceUnits.Kilometers) < 0.2);
 
@@ -62,13 +70,13 @@ public partial class MainViewModel : ViewModel
             }
         }
 
-        // Step 2: Calculate heat for each point after grouping is complete
         if (!pointList.Any())
         {
             Debug.WriteLine("[MainViewModel] LoadDataAsync: No points were created after grouping.");
              return;
         }
 
+        // Calculate a "heat" color for each point based on its visit count.
         var maxCount = pointList.Max(p => p.Count);
         var minCount = pointList.Min(p => p.Count);
         var diff = (float)(maxCount - minCount);
@@ -76,6 +84,7 @@ public partial class MainViewModel : ViewModel
         foreach (var point in pointList)
         {
             float normalized = (diff > 0) ? ((float)point.Count - minCount) / diff : 0;
+            // A hue from 0 (red/hot) to 0.66 (blue/cold) is calculated based on visit frequency.
             var hue = (1 - normalized) * (2f / 3f); 
             point.Heat = Color.FromHsla(hue, 1, 0.5);
         }
@@ -84,4 +93,3 @@ public partial class MainViewModel : ViewModel
         Points = pointList;
     }
 }
-

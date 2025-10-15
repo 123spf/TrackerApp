@@ -1,32 +1,36 @@
 using MeTracker.Services;
 using MeTracker.ViewModels;
-using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
 
 namespace MeTracker.Views;
+
+/// <summary>
+/// Represents the main user interface page, responsible for displaying the location map.
+/// </summary>
 public partial class MainView : ContentPage
 {
-    // --- CHANGE #1: STORE REFERENCES ---
-    // Store references to the services we need during the page's lifecycle.
     private readonly MainViewModel viewModel;
     private readonly ILocationTrackingService locationTrackingService;
 
+    /// <summary>
+    /// Initializes a new instance of the MainView, injecting required services.
+    /// </summary>
+    /// <param name="viewModel">The ViewModel containing the view's data and logic.</param>
+    /// <param name="locationTrackingService">The service for managing location tracking.</param>
 	public MainView(MainViewModel viewModel, ILocationTrackingService locationTrackingService)
 	{
 		InitializeComponent();
         
-        // --- CHANGE #2: SIMPLIFIED CONSTRUCTOR ---
-        // The constructor now only sets up the references and the BindingContext.
-        // All logic is moved out to prevent running it too early.
+        // Store service references and set the binding context to link the View to the ViewModel.
 		this.viewModel = viewModel;
         this.locationTrackingService = locationTrackingService;
 		BindingContext = this.viewModel;
 	}
 
-    // --- CHANGE #3: USE THE OnAppearing LIFECYCLE EVENT ---
-    // This method is called by the .NET MAUI framework automatically
-    // when the page is displayed on screen. This is the safe place
-    // to start the foreground service.
+    /// <summary>
+    /// Executes logic when the page is displayed on screen.
+    /// Handles permission checks, starts the tracking service, loads data, and centers the map.
+    /// </summary>
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -35,13 +39,13 @@ public partial class MainView : ContentPage
 
         if (status == PermissionStatus.Granted)
         {
-            // 1. Start the tracking service safely.
+            // Start the background location tracking service.
             locationTrackingService.StartTracking();
 
-            // 2. Load any previously saved locations from the database.
+            // Instruct the ViewModel to load and process existing location data for the heat map.
             await viewModel.LoadDataAsync();
 
-            // 3. Center the map on the user's current location.
+            // Center the map on the user's current or last known location.
             var location = await Geolocation.GetLastKnownLocationAsync();
             if (location == null)
             {
